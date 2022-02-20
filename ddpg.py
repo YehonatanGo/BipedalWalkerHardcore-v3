@@ -29,8 +29,9 @@ class DDPGAgent:
 
         # ---------networks initialization--------#
         # -----actor network-----#
-        self.actor = Actor(state_size, action_size, seed).to(device)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
+        self.actor_online = Actor(state_size, action_size, seed).to(device)
+        self.actor_target = Actor(state_size, action_size, seed).to(device)
+        self.actor_optimizer = optim.Adam(self.actor_online.parameters(), lr=self.actor_lr)
 
         # -----critic networks-----#
         self.critic_online = Critic(state_size, action_size, seed).to(device)
@@ -53,14 +54,15 @@ class DDPGAgent:
         states, actions, rewards, next_states, dones = experiences
 
         # ----update actor----#
-        predicted_actions = self.actor(states)
+        predicted_actions = self.actor_online(states)
         actor_loss = -self.critic_online(states, predicted_actions).mean()
+
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
 
         # ----update critic----#
-        next_pred_actions = self.actor(next_states)
+        next_pred_actions = self.actor_target(next_states)
         next_Q_targets = self.critic_target(next_states, next_pred_actions)
         curr_Q_targets = rewards + (self.gamma * next_Q_targets * (1 - dones))
         # compute loss
@@ -71,20 +73,32 @@ class DDPGAgent:
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        # update target network
+        # update target networks
         if self.timestep % self.should_be_updated == 0:
+            # critic
             for target_param, local_param in zip(self.critic_target.parameters(), self.critic_online.parameters()):
                 target_param.data.copy_(local_param.data)
+            # actor
+            for target_param, local_param in zip(self.actor_target.parameters(), self.actor_online.parameters()):
+                target_param.data.copy_(local_param.data)
+
+        # epsilon decay
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
     def act(self, state):
-        # TODO: epsilon greedy
         # TODO: add noise?
-        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        self.actor.eval()
-        with torch.no_grad():
-            action = self.actor(state).cpu().data.numpy().squeeze()
-        self.actor.train()
-        return action
+
+        rnd = random.random()
+        if rnd < self.epsilon:
+            return np.random.uniform(-1, 1, size=(4,))
+        else:
+            state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+            self.actor_online.eval()
+            with torch.no_grad():
+                action = self.actor_online(state).cpu().data.numpy().squeeze()
+            self.actor_online.train()
+            return action
 
     def solve(self, env, num_of_episodes=3000):
         rewards = []
