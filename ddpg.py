@@ -1,6 +1,6 @@
 import torch
 from Models import *
-import Memory
+from Memory import *
 import torch.optim as optim
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -29,8 +29,8 @@ class DDPGAgent:
 
         # ---------networks initialization--------#
         # -----actor network-----#
-        self.acotr = Actor(state_size, action_size, seed).to(device)
-        self.actor_optimizer = optim.Adam(self.acotr.parameters(), lr=self.actor_lr)
+        self.actor = Actor(state_size, action_size, seed).to(device)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
 
         # -----critic networks-----#
         self.critic_online = Critic(state_size, action_size, seed).to(device)
@@ -46,23 +46,23 @@ class DDPGAgent:
         self.memory.add(state, action, reward, next_state, done)
         # if there's enough experience samples in the memory - learn
         if len(self.memory) > self.batch_size:
-            sampled_experinces = self.memory.sample()
-            self.learn(sampled_experinces)
+            sampled_experiences = self.memory.sample()
+            self.learn(sampled_experiences)
 
     def learn(self, experiences):
         states, actions, rewards, next_states, dones = experiences
 
         # ----update actor----#
-        predicted_actions = self.acotr(states)
+        predicted_actions = self.actor(states)
         actor_loss = -self.critic_online(states, predicted_actions).mean()
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
 
         # ----update critic----#
-        next_pred_actions = self.acotr(next_states)
+        next_pred_actions = self.actor(next_states)
         next_Q_targets = self.critic_target(next_states, next_pred_actions)
-        curr_Q_targets = rewards + (self.gamma * next_Q_targets * (1-dones))
+        curr_Q_targets = rewards + (self.gamma * next_Q_targets * (1 - dones))
         # compute loss
         curr_Q_predicted = self.critic_online(states, actions)
         critic_loss = F.mse_loss(curr_Q_predicted, curr_Q_targets)
@@ -76,14 +76,39 @@ class DDPGAgent:
             for target_param, local_param in zip(self.critic_target.parameters(), self.critic_online.parameters()):
                 target_param.data.copy_(local_param.data)
 
-
     def act(self, state):
         # TODO: epsilon greedy
         # TODO: add noise?
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        self.actor_local.eval()
+        self.actor.eval()
         with torch.no_grad():
-            action = self.acotr(state).cpu().data.numpy()
+            action = self.actor(state).cpu().data.numpy().squeeze()
         self.actor.train()
         return action
 
+    def solve(self, env, num_of_episodes=3000):
+        rewards = []
+        for episode in range(num_of_episodes):
+            state = env.reset()
+            score = 0
+            max_steps = 3000
+            for _ in range(max_steps):
+                action = self.act(state)
+                next_state, reward, done, _ = env.step(action)
+                env.render()
+                self.step(state, action, reward, next_state, done)
+                state = next_state
+                score += reward
+                if done:
+                    print(f"Episode: {episode}/{num_of_episodes}, score: {score}", end="\r")
+                    break
+            rewards.append(score)
+            is_solved = np.mean(rewards[-100:])
+            if is_solved >= 200:
+                print("\n")
+                print(f"Enviroment solved in {episode} episodes!")
+                break
+            if episode % 100 == 0 and episode != 0:
+                print(f"Average score in episode {episode} is: {is_solved}")
+
+        return rewards
