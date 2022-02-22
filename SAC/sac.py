@@ -2,8 +2,8 @@ import os
 import torch
 import torch.nn.functional as F
 from torch.optim import Adam
-from utils import soft_update, hard_update
-from model import GaussianPolicy, QNetwork
+from SAC.utils import soft_update, hard_update
+from SAC.model import GaussianPolicy, QNetwork
 
 
 class soft_actor_critic_agent(object):

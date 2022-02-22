@@ -1,6 +1,6 @@
 import torch
-from Models import *
-from Memory import *
+from DDPG.Models import *
+from DDPG.Memory import *
 import torch.optim as optim
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,7 +28,7 @@ class DDPGAgent:
         self.should_be_updated = 50
 
         # ---------networks initialization--------#
-        # -----actor network-----#
+        # -----actor networks-----#
         self.actor_online = Actor(state_size, action_size, seed).to(device)
         self.actor_target = Actor(state_size, action_size, seed).to(device)
         self.actor_optimizer = optim.Adam(self.actor_online.parameters(), lr=self.actor_lr)

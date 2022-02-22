@@ -3,8 +3,8 @@ import time
 import gym
 import numpy as np
 import torch
-from sac import soft_actor_critic_agent
-from memory import ReplayMemory
+from SAC.sac import soft_actor_critic_agent
+from SAC.memory import ReplayMemory
 from collections import deque
 import matplotlib.pyplot as plt
 from utils import *
