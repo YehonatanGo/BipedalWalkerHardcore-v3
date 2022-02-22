@@ -1,7 +1,7 @@
 import gym
 import matplotlib.pyplot as plt
 
-from DDPG.ddpg import *
+from TD3.td3 import *
 
 
 if __name__ == "__main__":
@@ -9,9 +9,9 @@ if __name__ == "__main__":
   # env = wrap_env(env)
   state_size = env.observation_space.shape[0]
   action_size = env.action_space.shape[0]
-  agent = DDPGAgent(state_size, action_size, 0)
+  agent = TD3Agent(state_size, action_size, 0, env)
 
-  rewards = agent.solve(env, 1000)
+  rewards = agent.solve(env, 3000)
 
   plt.title("DDPG")
   plt.xlabel("Episodes")
