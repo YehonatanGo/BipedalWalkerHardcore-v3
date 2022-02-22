@@ -3,8 +3,8 @@ import time
 import gym
 import numpy as np
 import torch
-from SAC.sac import soft_actor_critic_agent
-from SAC.memory import ReplayMemory
+from sac import soft_actor_critic_agent
+from memory import ReplayMemory
 from collections import deque
 import matplotlib.pyplot as plt
 from utils import *
@@ -71,7 +71,7 @@ def solve(args,max_steps,env,agent,memory):
         episodes_array.append(i_episode)
 
         print(f"Episode: {i_episode}, Score: {episode_reward}, Avg.Score: {avg_score}", end="\r")
-        if (avg_score > 3000.5):
+        if (avg_score >= 300):
             print('Solved environment with Avg Score:  ', avg_score)
             plt.title("SAC")
             plt.xlabel("Episodes")
