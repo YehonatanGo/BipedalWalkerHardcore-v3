@@ -3,6 +3,7 @@ import sys
 from TD3.models import *
 from TD3.Memory import *
 import torch.optim as optim
+import torch
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -11,12 +12,12 @@ class TD3Agent:
         self.state_size = state_size
         self.action_size = action_size
         self.timestep = 0
-        self.batch_size = 64
+        self.batch_size = 100
         self.buffer_size = 1000000
         self.actor_lr = 0.001
         self.critic_lr = 0.001
-        self.gamma = .99
-        self.tau = 0.001
+        self.gamma = 0.99
+        self.tau = 0.005
         self.start_steps = 10000
         self.noise_clip = 0.5
         self.action_low = env.action_space.low
@@ -61,10 +62,11 @@ class TD3Agent:
 
         #------update critic------#
 
-        # compute target actions
-        noise = np.random.normal(0, 0.1, size=self.action_size)
+        # compute target actions and add noise
+        noise = torch.empty(actions.size()).normal_(mean=0, std=0.2)
+        # noise = np.random.normal(0, 0.2, size=self.action_size)
         noise = noise.clip(-self.noise_clip, self.noise_clip)
-        target_actions = self.actor_target(next_states)
+        target_actions = (self.actor_target(next_states)+noise).clip(self.action_low[0], self.action_high[0])
 
         # compute target Q values
         target_Q1 = self.critic1_target(next_states, target_actions)
@@ -133,7 +135,6 @@ class TD3Agent:
         # For a fixed number of steps at the beginning (set with the start_steps keyword argument),
         # the agent takes actions which are sampled from a uniform random distribution over valid actions.
         # After that, it returns to normal TD3 exploration.
-
         time_steps = 0
         state = env.reset()
         done = False
