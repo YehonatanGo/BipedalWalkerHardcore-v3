@@ -7,6 +7,7 @@ from sac import soft_actor_critic_agent
 from memory import ReplayMemory
 from collections import deque
 import matplotlib.pyplot as plt
+from utils import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -21,7 +22,7 @@ https://github.com/Rafael1s/Deep-Reinforcement-Learning-Algorithms/tree/master/B
 
 
 
-def sac_train(args,max_steps,env,agent,memory):
+def solve(args,max_steps,env,agent,memory):
 
     total_numsteps = 0
     updates = 0
@@ -51,18 +52,13 @@ def sac_train(args,max_steps,env,agent,memory):
             next_state, reward, done, _ = env.step(action) # Step
             if reward == -100:
                 reward = -1
-            reward = reward * 10
-
-            if i_episode % args.rd_intl == 0 and args.render:
-                env.render()
+            # reward = reward * 10
+            env.render()
             episode_steps += 1
             total_numsteps += 1
             episode_reward += reward
-
-            mask = 1 if episode_steps == env._max_episode_steps else float(not done)
-
+            mask = 1 if episode_steps == 2000 else float(not done)
             memory.push(state, action, reward, next_state, mask) # Append transition to memory
-
             state = next_state
             
             if done:
@@ -74,60 +70,18 @@ def sac_train(args,max_steps,env,agent,memory):
         avg_scores_array.append(avg_score)
         episodes_array.append(i_episode)
 
-        if i_episode % 50 == 0 and i_episode >0:
-            agent.save_model(args.directory, str(i_episode))
-            plt.plot(episodes_array,scores_array,avg_scores_array)
-            plt.ylabel("Reward")
-            plt.savefig('reward.jpg')
-
-        s =  (int)(time.time() - time_start)
-            
-        print("Ep.: {}, Total Steps: {}, Ep.Steps: {}, Score: {:.2f}, Avg.Score: {:.2f}, Time: {:02}:{:02}:{:02}".\
-            format(i_episode, total_numsteps, episode_steps, episode_reward, avg_score, \
-                  s//3600, s%3600//60, s%60))
-
-                    
-        if (avg_score > 300.5):
+        print(f"Episode: {i_episode}, Score: {episode_reward}, Avg.Score: {avg_score}", end="\r")
+        if (avg_score > 3000.5):
             print('Solved environment with Avg Score:  ', avg_score)
             plt.title("SAC")
             plt.xlabel("Episodes")
             plt.ylabel("Rewards")
             plt.plot([i + 1 for i in range(0, len(scores_array), 2)], scores_array[::2])
+            plt.savefig("SAC.jpg")
             plt.show()
-            plt.savefig("SAC")
-            break;
+            break
             
     return scores_array, avg_scores_array 
-
-def sac_test(args,steps,env,agent):
-    
-    state = env.reset()
-    scores_deque = deque(maxlen=100)
-    scores = []
-    
-    for i_episode in range(steps + 1):
-        
-        state = env.reset()
-        score = 0                    
-        time_start = time.time()
-        
-        while True:
-            
-            action = agent.select_action(state, eval=True)
-            env.render()
-            next_state, reward, done, _ = env.step(action)
-            score += reward 
-            state = next_state
-    
-            if done:
-                break
-                
-        s = (int)(time.time() - time_start)
-        scores_deque.append(score)
-        scores.append(score)    
-        
-        print('Episode {}\tAverage Score: {:.2f},\tScore: {:.2f} \tTime: {:02}:{:02}:{:02}'\
-                  .format(i_episode, np.mean(scores_deque), score, s//3600, s%3600//60, s%60))
 
 
 
@@ -136,7 +90,6 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--env_name",       default = "BipedalWalkerHardcore-v3", type = str,   help = 'OpenAI gym environment name')
     parser.add_argument('--capacity',       default = 1000000,            type = int,   help = ' Size of replay buffer') 
     parser.add_argument('--iteration',      default = 100000,             type = int,   help = 'Num of episodes')
     parser.add_argument('--batch_size',     default = 256,                type = int,   help = 'Mini batch size') 
@@ -160,17 +113,17 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     env = gym.make("BipedalWalkerHardcore-v3")
     env.seed(args.seed)
-    max_steps = env._max_episode_steps
+    max_steps = 2000
+    env = wrap_env(env)
 
-    agent = soft_actor_critic_agent(env.observation_space.shape[0], env.action_space, \
-        device=device, hidden_size=args.hidden_size, lr=args.learning_rate, gamma=args.gamma, tau=args.tau, alpha=args.alpha)
+    agent = soft_actor_critic_agent(env.observation_space.shape[0], env.action_space, 
+                                    device=device, hidden_size=args.hidden_size, 
+                                    lr=args.learning_rate, gamma=args.gamma, tau=args.tau,
+                                    alpha=args.alpha)
+
     memory = ReplayMemory(args.capacity)
 
-    if args.load:
-        agent.load_model(args.directory, 'final')
-    if args.train:
-        sac_train(args,max_steps,env,agent,memory)
-        agent.save_model(args.directory,'final')
-    if args.eval:
-        steps = 5
-        sac_test(args,steps,env,agent)
+
+
+    solve(args,max_steps,env,agent,memory)
+    agent.save_model(args.directory,'final')
