@@ -1,3 +1,5 @@
+import sys
+
 from TD3.models import *
 from TD3.Memory import *
 import torch.optim as optim
@@ -11,14 +13,11 @@ class TD3Agent:
         self.timestep = 0
         self.batch_size = 64
         self.buffer_size = 1000000
-        self.actor_lr = 0.0001
+        self.actor_lr = 0.001
         self.critic_lr = 0.001
         self.gamma = .99
         self.tau = 0.001
-        self.epsilon = 1.0
-        self.epsilon_min = .01
-        self.epsilon_decay = .996
-        self.should_be_updated = 50
+        self.start_steps = 10000
         self.noise_clip = 0.5
         self.action_low = env.action_space.low
         self.action_high = env.action_space.high
@@ -130,6 +129,31 @@ class TD3Agent:
 
     def solve(self, env, num_of_episodes=3000):
         rewards = []
+
+        # For a fixed number of steps at the beginning (set with the start_steps keyword argument),
+        # the agent takes actions which are sampled from a uniform random distribution over valid actions.
+        # After that, it returns to normal TD3 exploration.
+
+        time_steps = 0
+        state = env.reset()
+        done = False
+        while time_steps < self.start_steps:
+            action = env.action_space.sample()
+            next_state, reward, done, _ = env.step(action)
+
+            self.memory.add(state, action, reward, next_state, done)
+
+            state = next_state
+            time_steps += 1
+
+            if done:
+                state = env.reset()
+                done = False
+
+            print("\rPopulating Buffer {}/{}.".format(time_steps, self.start_steps), end="")
+            sys.stdout.flush()
+
+
         for episode in range(num_of_episodes):
             state = env.reset()
             score = 0
@@ -137,22 +161,22 @@ class TD3Agent:
             for _ in range(max_steps):
                 action = self.act(state)
                 next_state, reward, done, _ = env.step(action)
-                # env.render()
+                env.render()
                 self.step(state, action, reward, next_state, done)
                 state = next_state
                 score += reward
                 if done:
                     print(f"Episode: {episode}/{num_of_episodes}, score: {score}", end="\r")
                     break
-            print(f"Episode: {episode}, score: {score}")
             rewards.append(score)
-            is_solved = np.mean(rewards[-100:])
-            if is_solved >= 200:
+            mean_100_eps = np.mean(rewards[-100:])
+            print(f"Episode: {episode}, score: {score}, avg last 100 episodes: {mean_100_eps}")
+            if mean_100_eps >= 200:
                 print("\n")
                 print(f"Enviroment solved in {episode} episodes!")
                 break
             if episode % 100 == 0 and episode != 0:
-                print(f"Average score in episode {episode} is: {is_solved}")
+                print(f"Average score in episode {episode} is: {mean_100_eps}")
 
         return rewards
 
