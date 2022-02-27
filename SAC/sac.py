@@ -126,8 +126,7 @@ class SACAgent(object):
                 next_state, reward, done, _ = env.step(action) # Step
                 if reward == -100:
                     reward = -1
-                # reward = reward * 10
-                env.render()
+                # env.render()
                 episode_steps += 1
                 total_numsteps += 1
                 score += reward
@@ -142,8 +141,10 @@ class SACAgent(object):
                     episodes_array.append(episode)
                     print(f"Episode: {episode}, Score: {score}, Avg.Score: {avg_score}", end="\r")
                     break
-
-            if score >= 300 and episode >= 2900:
+            if avg_score >= 300:
+                is_finished = True
+                break
+            if episode >= 2900:
                 is_finished = self.test(env, max_steps, episode, avg_score)  
             if is_finished == True:
                 break
@@ -170,9 +171,9 @@ class SACAgent(object):
             state = env.reset()
             temp_score = 0
             for _ in range(max_steps):
-                action = self.select_action(state, eval=True)
+                action = self.choose_action(state, eval=True)
                 next_state, reward, done, _ = env.step(action) # Step
-                env.render()
+                # env.render()
                 state = next_state
                 temp_score += reward
                 if done:
