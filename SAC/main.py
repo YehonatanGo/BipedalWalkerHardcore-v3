@@ -27,7 +27,8 @@ if __name__ == '__main__':
     state_size = env.observation_space.shape[0]
     action_space = env.action_space
     hidden_size = 256
-
+ 
+ 
     agent = SACAgent(state_size, action_space, hidden_size)
     agent.solve(env)
     agent.save_model('models','final')
