@@ -13,8 +13,6 @@ torch.autograd.set_detect_anomaly(True)
 '''
 Implementation of soft actor critic, dual Q network version 
 Original paper: https://arxiv.org/abs/1801.01290
-Not the author's implementation !
-https://github.com/Rafael1s/Deep-Reinforcement-Learning-Algorithms/tree/master/BipedalWalker-Soft-Actor-Critic
 '''
 
 if __name__ == '__main__':

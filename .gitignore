@@ -134,3 +134,5 @@ dmypy.json
 video
 
 logs_data
+
+.vscode

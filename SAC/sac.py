@@ -32,7 +32,6 @@ class SACAgent(object):
         self.critic_target = QNetwork(state_size, self.action_size, hidden_size).to(device)
         hard_update(self.critic_target, self.critic)
         
-        # Target Entropy = −dim(A) (e.g. , -6 for HalfCheetah-v2) as given in the paper
         self.target_entropy = -torch.prod(torch.Tensor(action_space.shape).to(device)).item()
         self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
 
@@ -69,8 +68,8 @@ class SACAgent(object):
             next_q_value = reward_batch + mask_batch * self.gamma * (min_qf_next_target)
 
         qf1, qf2 = self.critic(state_batch, action_batch)  # Two Q-functions to mitigate positive bias in the policy improvement step
-        qf1_loss = F.mse_loss(qf1, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
-        qf2_loss = F.mse_loss(qf2, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
+        qf1_loss = F.mse_loss(qf1, next_q_value)  
+        qf2_loss = F.mse_loss(qf2, next_q_value)  
         qf_loss = qf1_loss + qf2_loss
 
         self.critic_optim.zero_grad()
