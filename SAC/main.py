@@ -10,11 +10,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 torch.autograd.set_detect_anomaly(True)
 
-'''
-Implementation of soft actor critic, dual Q network version 
-Original paper: https://arxiv.org/abs/1801.01290
-'''
-
 if __name__ == '__main__':
     env = gym.make("BipedalWalkerHardcore-v3")
     torch.manual_seed(0)
