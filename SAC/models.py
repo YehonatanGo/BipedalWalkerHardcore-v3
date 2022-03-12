@@ -73,7 +73,6 @@ class GaussianPolicy(nn.Module):
 
         self.apply(weights_init_)
 
-        # action rescaling
         if action_space is None:
             self.action_scale = torch.tensor(1.)
             self.action_bias = torch.tensor(0.)
@@ -95,11 +94,11 @@ class GaussianPolicy(nn.Module):
         mean, log_std = self.forward(state)
         std = log_std.exp()
         normal = Normal(mean, std)
-        x_t = normal.rsample()  # for reparameterization trick (mean + std * N(0,1))
+        x_t = normal.rsample()  
         y_t = torch.tanh(x_t)
         action = y_t * self.action_scale + self.action_bias
         log_prob = normal.log_prob(x_t)
-        # Enforcing Action Bound
+
         log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + epsilon)
         log_prob = log_prob.sum(1, keepdim=True)
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
@@ -123,7 +122,6 @@ class DeterministicPolicy(nn.Module):
 
         self.apply(weights_init_)
 
-        # action rescaling
         if action_space is None:
             self.action_scale = 1.
             self.action_bias = 0.

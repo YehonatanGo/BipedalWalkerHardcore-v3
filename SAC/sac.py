@@ -113,9 +113,9 @@ class SACAgent(object):
             state = env.reset()
             for _ in range(max_steps):    
                 if self.start_steps > total_numsteps:
-                    action = env.action_space.sample()  # Sample random action
+                    action = env.action_space.sample()  # random action
                 else:
-                    action = self.choose_action(state)  # Sample action from policy
+                    action = self.choose_action(state)  # action from policy
 
                 if len(self.memory) > self.batch_size:
                     # Update parameters of all the networks
