@@ -52,7 +52,6 @@ class SACAgent(object):
         return action.detach().cpu().numpy()[0]
 
     def update_parameters(self):
-        # Sample a batch from memory
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = self.memory.sample(batch_size=self.batch_size)
 
         state_batch = torch.FloatTensor(state_batch).to(device)
@@ -81,7 +80,7 @@ class SACAgent(object):
         qf1_pi, qf2_pi = self.critic(state_batch, pi)
         min_qf_pi = torch.min(qf1_pi, qf2_pi)
 
-        policy_loss = ((self.alpha * log_pi) - min_qf_pi).mean() # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
+        policy_loss = ((self.alpha * log_pi) - min_qf_pi).mean() 
 
         self.policy_optim.zero_grad()
         policy_loss.backward()
@@ -94,7 +93,7 @@ class SACAgent(object):
         self.alpha_optim.step()
 
         self.alpha = self.log_alpha.exp()
-        alpha_tlogs = self.alpha.clone() # For TensorboardX logs
+        alpha_tlogs = self.alpha.clone() 
 
         soft_update(self.critic_target, self.critic, self.tau)
     
@@ -130,7 +129,7 @@ class SACAgent(object):
                 total_numsteps += 1
                 score += reward
                 mask = 1 if episode_steps == 2000 else float(not done)
-                self.memory.push(state, action, reward, next_state, mask) # Append transition to memory
+                self.memory.push(state, action, reward, next_state, mask) 
                 state = next_state
                 if done:
                     scores_deque.append(score)
